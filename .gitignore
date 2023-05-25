@@ -6,6 +6,7 @@ __pycache__/
 .vs
 
 fetchData/
+output/csv/
 output/Lines
 output/Stations
 output/web/lines

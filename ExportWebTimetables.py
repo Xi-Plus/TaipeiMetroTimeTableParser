@@ -1,7 +1,9 @@
 # -*- coding: utf8 -*-
 import codecs
+import csv
 import json
 import io
+import os
 from os.path import join, basename, splitext
 from pathlib import Path
 from itertools import *
@@ -12,6 +14,7 @@ from collections import Counter
 
 lineTimetablesDir = 'output/Lines'
 outputDir = 'output/web'
+outputDirCsv = 'output/csv'
 stationMapping = StationMapping('StationList.json')
 GATrackingCode = '[TRACKING_CODE]'
 
@@ -174,6 +177,7 @@ def getSwitchPatternDirectionTable(code, allDaysPatterns, allDirections, current
 
 def getLineTimetable(stations, data, direction, daysPattern):
     result = '<div id="outer-timetable-container"><div id="station-container"><table id="stations"><tbody>'
+    resultcsv = []
     rows = [''] * len(stations)
     idx = 0
     for (i, station) in enumerate(stations):
@@ -187,6 +191,7 @@ def getLineTimetable(stations, data, direction, daysPattern):
             result += '<a class="station-link" href="{}">'.format(url)
         result += '<span class="station-code">{}</span> {}'.format(
             station, stationMapping.CodeToName(station))
+        resultcsv.append([station])
         if appendLink:
             result += '</a>'
         result += '</td></tr>\n'
@@ -206,10 +211,11 @@ def getLineTimetable(stations, data, direction, daysPattern):
         idx = 0
         for dep in train:
             rows[idx] += '<td>' + dep + '</td>'
+            resultcsv[idx].append(dep if dep else '==')
             idx += 1
     rows = [s + '</tr>\n' for s in rows]
     result += ''.join(rows) + '</tbody></table></div></div>'
-    return result
+    return result, resultcsv
 
 
 def printLineFile(allStations, allDaysPatterns, allDirections,
@@ -253,9 +259,15 @@ def printLineFile(allStations, allDaysPatterns, allDirections,
                     currentDaysPattern, stations[i], ConvertToHourMinute(checkValues[a]), ConvertToHourMinute(sortedValues[a])))
                 break
 
-    f.write(getLineTimetable(stations, trains, currentDirection, currentDaysPattern))
+    result, resultCsv = getLineTimetable(stations, trains, currentDirection, currentDaysPattern)
+    f.write(result)
     f.write(getHtmlFileFooter())
 
+    fileNameCsv = '{}/{}-{}-{}.csv'.format(
+        outputDirCsv, lineCode, DirectionToCode[currentSortDirection], currentDaysPattern)
+    with io.open(fileNameCsv, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerows(resultCsv)
 
 def getStationTimetable(data):
     # Group data by hour
@@ -426,6 +438,11 @@ def processLineTimeTable(inputFile):
 
 
 if __name__ == '__main__':
+    os.makedirs(outputDir, exist_ok=True)
+    os.makedirs(outputDir + '/lines', exist_ok=True)
+    os.makedirs(outputDir + '/stations', exist_ok=True)
+    os.makedirs(outputDir + '/stationPage', exist_ok=True)
+    os.makedirs(outputDirCsv, exist_ok=True)
     for file in Path(lineTimetablesDir).glob('*.json'):
         processLineTimeTable(file)
         print('Done ' + str(file))
