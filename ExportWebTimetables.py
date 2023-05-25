@@ -438,11 +438,6 @@ def processLineTimeTable(inputFile):
 
 
 if __name__ == '__main__':
-    os.makedirs(outputDir, exist_ok=True)
-    os.makedirs(outputDir + '/lines', exist_ok=True)
-    os.makedirs(outputDir + '/stations', exist_ok=True)
-    os.makedirs(outputDir + '/stationPage', exist_ok=True)
-    os.makedirs(outputDirCsv, exist_ok=True)
     for file in Path(lineTimetablesDir).glob('*.json'):
         processLineTimeTable(file)
         print('Done ' + str(file))
